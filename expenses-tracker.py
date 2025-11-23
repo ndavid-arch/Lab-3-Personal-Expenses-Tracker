@@ -1,11 +1,12 @@
 from datetime import datetime
 import os
 import time
-Welcome_messege = "_______________________________\n\n  Welcome to the Application!\n_______________________________" 
+
+Welcome_messege = "_______________________________\n\n  Welcome to the Application!\n_______________________________"
 
 
 def display_menu(show_loading=True):
-        # Clear screen before showing the menu (optional, makes it cleaner)
+    # Clear screen before showing the menu
     os.system('cls' if os.name == 'nt' else 'clear')
 
     # Loading effect
@@ -16,7 +17,7 @@ def display_menu(show_loading=True):
             print(".", end="", flush=True)
     time.sleep(0.5)
     print("\r" + " " * 20 + "\r", end="")
-    
+
     print(f"\n{Welcome_messege}\n\n1. Check Remaining Balance\n2. View Expenses\n3. Add New Expense\n4. Exit\n")
 
 
@@ -25,12 +26,10 @@ class Wallet:
         self.balance_file = balance_file
         self.balance = self.read_balance()
 
-
     def read_balance(self):
         try:
             with open(self.balance_file, "r") as f:
-                balance = f.read().strip()
-                balance = float(balance)
+                balance = float(f.read().strip())
         except FileNotFoundError:
             with open(self.balance_file, "w") as f:
                 f.write("0")
@@ -47,11 +46,9 @@ class Wallet:
                 f.write(f"{balance:.2f}")
         return balance
 
-
     def write_balance(self):
         with open(self.balance_file, "w") as f:
             f.write(f"{self.balance:.2f}")
-
 
     def calculate_total_expenses(self):
         total = 0.0
@@ -67,7 +64,6 @@ class Wallet:
                     pass
         return total
 
-
     def check_remaining_balance(self):
         total_expenses = self.calculate_total_expenses()
         available_balance = self.balance - total_expenses
@@ -79,7 +75,8 @@ class Wallet:
         print("-------------------------------\n")
 
         if available_balance < 0:
-            print("⚠ Warning: You have overspent your balance!\n")
+            print(f"⚠ Warning: You have overspent your balance by ${-available_balance:.2f}!\n")
+
         while True:
             add_money = input("Do you want to add money to your balance? (y/n): ").strip().lower()
             if add_money == "y":
@@ -98,99 +95,91 @@ class Wallet:
                             break
                     except ValueError:
                         print("Invalid input! Enter a valid number.")
-                break  # exit outer loop after handling 'y'
+                break
             elif add_money == "n":
                 print("\nNo money added.")
                 time.sleep(1)
                 print("Returning to main menu...")
-                break  # exit loop, return to menu
+                break
             else:
                 print("Invalid input! Please enter 'y' or 'n'.")
 
+    def add_new_expense(self):
+        total_expenses = self.calculate_total_expenses()
+        available_balance = self.balance - total_expenses
 
-# ADD NEW EXPENSE METHOD
-def add_new_expense(self):
-    total_expenses = self.calculate_total_expenses()
-    available_balance = self.balance - total_expenses
+        print("\n-------- ADD NEW EXPENSE --------")
+        print(f"Available Balance: ${available_balance:.2f}")
+        print("---------------------------------\n")
 
-    print("\n-------- ADD NEW EXPENSE --------")
-    print(f"Available Balance: ${available_balance:.2f}")
-    print("---------------------------------\n")
-
-    # Date
-    while True:
-        date_str = input("Enter expense date (YYYY-MM-DD): ").strip()
-        try:
-            datetime.strptime(date_str, "%Y-%m-%d")
-            break
-        except ValueError:
-            print("Invalid date format! Please use YYYY-MM-DD.\n")
-
-    filename = f"expenses_{date_str}.txt"
-
-    # Item
-    item = input("Enter item name: ").strip()
-
-    # Amount
-    while True:
-        try:
-            amount = float(input("Enter amount spent: $"))
-            if amount <= 0:
-                print("Amount must be positive!")
-            else:
+        # Date
+        while True:
+            date_str = input("Enter expense date (YYYY-MM-DD): ").strip()
+            try:
+                datetime.strptime(date_str, "%Y-%m-%d")
                 break
-        except ValueError:
-            print("Invalid amount. Enter a valid number.")
+            except ValueError:
+                print("Invalid date format! Please use YYYY-MM-DD.\n")
 
-    # Confirmation
-    while True:
-        print("\nPlease confirm the details:")
-        print(f"Date:   {date_str}")
-        print(f"Item:   {item}")
-        print(f"Amount: ${amount:.2f}")
-        confirm = input("Save this expense? (y/n): ").strip().lower()
-        if confirm == "y":
-            break
-        elif confirm == "n":
-            print("\nExpense cancelled.")
-            print("Press Enter to return to the main menu...")
-            input()
-            return
-        else:
-            print("Invalid input! Please enter 'y' or 'n'.")
+        filename = f"expenses_{date_str}.txt"
 
-    # Expense ID
-    expense_id = 1
-    if os.path.exists(filename):
-        with open(filename, "r") as f:
-            lines = f.readlines()
-            expense_id = len(lines) + 1
+        # Item
+        item = input("Enter item name: ").strip()
 
-    # Timestamp
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        # Amount
+        while True:
+            try:
+                amount = float(input("Enter amount spent: $"))
+                if amount <= 0:
+                    print("Amount must be positive!")
+                elif amount > available_balance:
+                    print("⚠ Insufficient balance! Cannot save expense.")
+                    return
+                else:
+                    break
+            except ValueError:
+                print("Invalid amount. Enter a valid number.")
 
-    # Save expense
-    with open(filename, "a") as f:
-        f.write(f"{expense_id}|{item}|{now}|{amount}\n")
+        # Confirmation
+        while True:
+            print("\nPlease confirm the details:")
+            print(f"Date:   {date_str}")
+            print(f"Item:   {item}")
+            print(f"Amount: ${amount:.2f}")
+            confirm = input("Save this expense? (y/n): ").strip().lower()
+            if confirm == "y":
+                break
+            elif confirm == "n":
+                print("\nExpense cancelled.")
+                print("Press Enter to return to the main menu...")
+                input()
+                return
+            else:
+                print("Invalid input! Please enter 'y' or 'n'.")
 
-    # Update balance
-    self.balance -= amount
-    self.write_balance()
+        # Expense ID
+        expense_id = 1
+        if os.path.exists(filename):
+            with open(filename, "r") as f:
+                lines = f.readlines()
+                expense_id = len(lines) + 1
 
-    # Calculate updated totals
-    total_expenses = self.calculate_total_expenses()
-    available_balance = self.balance - total_expenses
+        # Timestamp
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    print("\n Expense saved successfully!")
-    print(f"Initial Balance: ${self.balance + total_expenses:.2f}")
-    print(f"Total Expenses: ${total_expenses:.2f}")
-    print(f"Available Balance: ${available_balance:.2f}")
-    if available_balance < 0:
-        print(f"⚠ Warning: You have overspent your balance by ${-available_balance:.2f}!\n")
+        # Save expense
+        with open(filename, "a") as f:
+            f.write(f"{expense_id}|{item}|{now}|{amount}\n")
 
-    print("Press Enter to return to the main menu...")
-    input()
-
+        print("\nExpense saved successfully!")
+        # Updated totals
+        total_expenses = self.calculate_total_expenses()
+        available_balance = self.balance - total_expenses
+        print(f"Initial Balance: ${self.balance + total_expenses:.2f}")
+        print(f"Total Expenses: ${total_expenses:.2f}")
+        print(f"Available Balance: ${available_balance:.2f}")
+        print("Press Enter to return to the main menu...")
+        input()
 
     def view_expenses(self):
         while True:
@@ -228,7 +217,7 @@ def add_new_expense(self):
                                 parts = line.strip().split("|")
                                 if len(parts) == 4:
                                     _, item, date_time, amount = parts
-                                    if float(amount) == search_amount:
+                                    if round(float(amount), 2) == round(search_amount, 2):
                                         print(f"Date: {date_time}, Item: {item}, Amount: ${amount}")
                                         found = True
                 if not found:
@@ -240,6 +229,7 @@ def add_new_expense(self):
                 break
             else:
                 print("Invalid choice! Please select 1, 2, or 3.")
+
 
 # --- Create wallet object BEFORE menu loop ---
 wallet = Wallet()
@@ -267,7 +257,7 @@ while True:
     elif choice == 3:
         print("\nYou selected: Add New Expense")
         time.sleep(1)
-        wallet.add_new_expense()        
+        wallet.add_new_expense()
         time.sleep(3)
     elif choice == 4:
         print("Exiting the program. Goodbye!")
